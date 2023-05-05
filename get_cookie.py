@@ -1,6 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import json
+import time
 
 browser_options = Options()
 browser = webdriver.Chrome(chrome_options=browser_options)
