@@ -25,6 +25,7 @@ class GetWeibo:
 
     def __init__(self, base_url='https://s.weibo.com/weibo'):
         self.base_url = base_url
+        self.keywords = None
         # 如果cookie失效，请重新运行
         # get_cookie()
         self.open_search(base_url)
@@ -36,8 +37,8 @@ class GetWeibo:
         print(f'微博搜索页面{self.browser.current_url}已成功打开...')
         kw = self.browser.find_element(By.XPATH, ('//div[@class="searchbox"]/div[@class="search-input"]/'
                                                   'input[@type="text"]'))
-        keywords = input('请输入微博搜索的关键词，按回车键确认：')
-        print(f'搜索关键词为：{keywords}。')
+        self.keywords = input('请输入微博搜索的关键词，按回车键确认：')
+        print(f'搜索关键词为：{self.keywords}。')
         while True:
             origin = input('搜索所有微博请输入1，按回车键确认，直接按回车键则只搜索原创微博：')
             if origin == '':
@@ -92,7 +93,7 @@ class GetWeibo:
                 print(f'抓取起始页为：第{page_begin}页。')
                 page_begin = '&page=' + str(page_begin)
                 break
-        kw.send_keys(keywords)
+        kw.send_keys(self.keywords)
         click_search = self.browser.find_element(By.XPATH, '//div[@class="searchbox"]/button[@class="s-btn-b"]')
         click_search.click()
         time.sleep(1)
@@ -117,10 +118,10 @@ class GetWeibo:
         date_past = (datetime.datetime.strptime(date_now, date_format) + datetime.timedelta(days=-31)).strftime(date_format)
         url = self.browser.current_url
         url_change = re.search(r'(.*)(?=q=)', url)
-        url = url_change.group() + f'q={keywords}{origin}&suball=1&timescope=custom:{date_past}:{date_now}&Refer=g{page_begin}'
+        url = url_change.group() + f'q={self.keywords}{origin}&suball=1&timescope=custom:{date_past}:{date_now}&Refer=g{page_begin}'
         now = datetime.datetime.now()
         print(f'本次抓取的开始时间是：{now}')
-        self.auto_search(url, keywords, now, origin, date_judge)
+        self.auto_search(url, self.keywords, now, origin, date_judge)
 
     def auto_search(self, url, keywords, now, origin, date_judge, search_times=0):
         if url != self.browser.current_url:
@@ -149,12 +150,27 @@ class GetWeibo:
             blogs = post.xpath('//div[contains(@class, "detail_text")]/div/text()')
             blogs = ''.join(blogs)
             forward = post.xpath('//span[@class="woo-pop-ctrl"]/div/span/text()')
-            forward = [0 if i == ' 转发 ' else int(i) for i in forward]
+            forward = [0 if i == ' 转发 ' else i for i in forward]
+            if '万' not in forward:
+                pass
+            else:
+                forward = ''.join(forward)
+                forward = int(float(forward[0:-1]) * 10000)
             comments = post.xpath('//div[contains(@class, "woo-box-item-flex toolbar_item")]'
                                   '/div[contains(@class, "woo-box-flex")]/span/text()')
-            comments = [0 if i == ' 评论 ' else int(i) for i in comments]
+            comments = [0 if i == ' 评论 ' else i for i in comments]
+            if '万' not in comments:
+                pass
+            else:
+                comments = ''.join(comments)
+                comments = int(float(comments[0:-1]) * 10000)
             likes = post.xpath('//div[contains(@class, "toolbar_likebox")]/button/span[@class="woo-like-count"]/text()')
-            likes = [0 if i == '赞' else int(i) for i in likes]
+            likes = [0 if i == '赞' else i for i in likes]
+            if '万' not in likes:
+                pass
+            else:
+                likes = ''.join(likes)
+                likes = int(float(likes[0:-1]) * 10000)
             key_list = ['微博账号', '发文时间', '发送平台', '微博内容', '转发次数', '评论次数', '点赞次数', '原博地址']
             info_list = [names, times, from_all, blogs, forward, comments, likes, url]
             csv_info = dict(zip(key_list, info_list))
@@ -208,7 +224,7 @@ class GetWeibo:
                                                '//div[@class="m-page"]/div/a[@class="next"]')
         click_next.click()
         url = self.browser.current_url
-        self.auto_search(url, now, origin, date_judge, search_times)
+        self.auto_search(url, keywords, now, origin, date_judge, search_times)
 
 
 if __name__ == '__main__':
