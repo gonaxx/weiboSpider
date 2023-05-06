@@ -219,12 +219,12 @@ class GetWeibo:
             url = self.browser.current_url
             url_change = re.search(r'(.*)(?=q=)', url)
             url = url_change.group() + f'q={keywords}{origin}&suball=1&timescope=custom:{time_begin}:{time_end}&Refer=g&page=1'
-            self.auto_search(url, now, origin, date_judge, search_times)
+            self.auto_search(url, self.keywords, now, origin, date_judge, search_times)
         click_next = self.browser.find_element(By.XPATH,
                                                '//div[@class="m-page"]/div/a[@class="next"]')
         click_next.click()
         url = self.browser.current_url
-        self.auto_search(url, keywords, now, origin, date_judge, search_times)
+        self.auto_search(url, self.keywords, now, origin, date_judge, search_times)
 
 
 if __name__ == '__main__':
