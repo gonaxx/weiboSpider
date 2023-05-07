@@ -1,3 +1,4 @@
+import selenium.common.exceptions
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -9,6 +10,7 @@ import datetime
 import random
 import time
 import re
+
 
 # from get_cookie import get_cookie
 
@@ -23,15 +25,17 @@ class GetWeibo:
                              '/103.0.0.0 Safari/537.36'}
     print("浏览器已成功创建。")
 
-    def __init__(self, base_url='https://s.weibo.com/weibo'):
-        self.base_url = base_url
+    def __init__(self):
+        self.base_url = 'https://s.weibo.com/weibo'
         self.keywords = None
+        self.origin = None
+        self.time_judge = None
         # 如果cookie失效，请重新运行
         # get_cookie()
-        self.open_search(base_url)
+        self.main()
 
-    def open_search(self, base_url):
-        self.browser.get(base_url)
+    def open_search(self):
+        self.browser.get(self.base_url)
         self.browser.delete_all_cookies()
         time.sleep(8)
         print(f'微博搜索页面{self.browser.current_url}已成功打开...')
@@ -40,24 +44,25 @@ class GetWeibo:
         self.keywords = input('请输入微博搜索的关键词，按回车键确认：')
         print(f'搜索关键词为：{self.keywords}。')
         while True:
-            origin = input('搜索所有微博请输入1，按回车键确认，直接按回车键则只搜索原创微博：')
-            if origin == '':
-                origin = '&scope=ori'
+            self.origin = input('搜索所有微博请输入1，按回车键确认，直接按回车键则只搜索原创微博：')
+            if self.origin == '':
+                self.origin = '&scope=ori'
                 print('仅搜索原创微博。')
                 break
-            elif origin == '1':
-                origin = '&typeall=1'
+            elif self.origin == '1':
+                self.origin = '&typeall=1'
                 print('搜索全部微博。')
-                continue
+                break
             else:
                 print('输入错误，请重新输入。')
-                break
+                continue
         while True:
             date_time = input('请按年-月-日-时的格式输入抓取微博的发布截止时间（示例：2022-08-03-07），按回车键确认，直接按回车键则截止时间为当前时间：')
             if date_time == '':
                 date_format = '%Y-%m-%d-%H'
                 date_time = datetime.datetime.now().strftime(date_format)
-                date_time = (datetime.datetime.strptime(date_time, date_format) + (datetime.timedelta(hours=+1))).strftime(date_format)
+                date_time = (datetime.datetime.strptime(date_time, date_format) + (
+                    datetime.timedelta(hours=+1))).strftime(date_format)
                 print('截止时间为：当前时间。')
                 break
             elif re.match(r'(2\d{3})-'
@@ -80,6 +85,7 @@ class GetWeibo:
             else:
                 print(f'截止时间为：{date_time}。')
                 break
+        self.time_judge = datetime.datetime.strptime(date_time, '%Y-%m-%d-%H')
         while True:
             page_begin = input('请输入微博列表的抓取起始页（0至50之间），按回车键确认，直接按回车键从第1页开始：')
             if page_begin == '':
@@ -108,22 +114,17 @@ class GetWeibo:
                     cookie['expiry'] = int(cookie['expiry'])
                 self.browser.add_cookie(cookie)
         self.browser.refresh()
-        date_now = time.strptime(date_time, '%Y-%m-%d-%H')
-        date_judge = time.strftime('%Y-%m-%d %H', date_now)
-        date_now = time.strftime('%Y-%m-%d-%H', date_now)
-        date_judge = str(date_judge) + ':00'
-        date_judge = time.strptime(date_judge, '%Y-%m-%d %H:%M')
-        date_judge = time.strftime('%Y-%m-%d %H:%M', date_judge)
         date_format = '%Y-%m-%d-%H'
-        date_past = (datetime.datetime.strptime(date_now, date_format) + datetime.timedelta(days=-31)).strftime(date_format)
+        date_past = (datetime.datetime.strptime(date_time, date_format) + datetime.timedelta(days=-31)).strftime(
+            date_format)
         url = self.browser.current_url
         url_change = re.search(r'(.*)(?=q=)', url)
-        url = url_change.group() + f'q={self.keywords}{origin}&suball=1&timescope=custom:{date_past}:{date_now}&Refer=g{page_begin}'
-        now = datetime.datetime.now()
-        print(f'本次抓取的开始时间是：{now}')
-        self.auto_search(url, self.keywords, now, origin, date_judge)
+        url = url_change.group() + f'q={self.keywords}{self.origin}&suball=1&timescope=custom:{date_past}:{date_time}&Refer=g{page_begin}'
+        print(f'本次抓取的开始时间是：{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+        search_times = 0
+        return url, search_times
 
-    def auto_search(self, url, keywords, now, origin, date_judge, search_times=0):
+    def auto_search(self, url, search_times):
         if url != self.browser.current_url:
             self.browser.get(url)
         print(f'微博列表页面{self.browser.current_url}已打开，抓取中...')
@@ -140,8 +141,39 @@ class GetWeibo:
             post = etree.HTML(self.browser.page_source)
             names = post.xpath('//a[@usercard]/span[@title]/text()')
             print(names)
-            times = post.xpath('//a[@title][@href][@class][1]/text()')
-            print(times)
+            time_ = post.xpath('//a[@title][@href][@class][1]/text()')
+            time_ = ''.join(time_)
+            time_ = f'20{time_.strip()}'
+            time_mark = datetime.datetime.strptime(time_, '%Y-%m-%d %H:%M')
+            if time_mark >= self.time_judge:
+                next_time = (datetime.datetime.now() + (datetime.timedelta(seconds=+3601))).strftime('%Y-%m-%d %H:%M:%S')
+                _target_time = datetime.datetime.strptime(next_time, '%Y-%m-%d %H:%M:%S')
+                _time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
+                print(f'达到单时段最大次数限制。当前时间是{_time}，目前已抓取{search_times}条微博，下次抓取时间：{next_time}，现在睡眠中...')
+                while datetime.datetime.now() < _target_time:
+                    time.sleep(60)
+                self.browser.back()
+                click_next = None
+                while True:
+                    try:
+                        click_next = self.browser.find_element(By.XPATH,
+                                                               '//div[@class="m-page"]/div/a[@class="next"]')
+                        break
+                    except selenium.common.exceptions.NoSuchElementException as E:
+                        print(repr(E))
+                        next_time = (datetime.datetime.now() + (datetime.timedelta(seconds=+3601))).strftime(
+                            '%Y-%m-%d %H:%M:%S')
+                        _target_time = datetime.datetime.strptime(next_time, '%Y-%m-%d %H:%M:%S')
+                        _time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
+                        print(f'达到单时段最大次数限制。当前时间是{_time}，目前已抓取{search_times}条微博，下次抓取时间：{next_time}，现在睡眠中...')
+                        while datetime.datetime.now() < _target_time:
+                            time.sleep(120)
+                        self.browser.back()
+                        continue
+                click_next.click()
+                url = self.browser.current_url
+                return url, search_times
+            print(time_)
             from1 = post.xpath('//div[@class="woo-box-flex"]/div[@title]/text()')
             from2 = post.xpath('//div[@class="woo-box-flex"]/div[contains(@class, "head-info_cut")]/text()')
             from1 = ''.join(from1)
@@ -172,20 +204,20 @@ class GetWeibo:
                 likes = ''.join(likes)
                 likes = int(float(likes[0:-1]) * 10000)
             key_list = ['微博账号', '发文时间', '发送平台', '微博内容', '转发次数', '评论次数', '点赞次数', '原博地址']
-            info_list = [names, times, from_all, blogs, forward, comments, likes, url]
+            info_list = [names, time_, from_all, blogs, forward, comments, likes, url]
             csv_info = dict(zip(key_list, info_list))
             df1 = pandas.DataFrame(csv_info, columns=key_list)
             df = pandas.concat([df, df1])
             self.browser.back()
             search_times += 1
-            time.sleep(1)
         df.to_csv('weibo_spider.csv', mode='a', encoding='utf_8_sig', header=False, index=False)
         url = self.browser.current_url
         page_num = url.split('page=')[-1]
         if page_num.isdigit() is False:
             page_num = '1'
         page_num = int(page_num)
-        print(f'已成功提取第{page_num}页微博信息并追加写入CSV文件！')
+        _time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
+        print(f'已成功提取第{page_num}页微博信息并追加写入CSV文件！当前时间是{_time}，目前已抓取{search_times}条微博。')
         if page_num == 50:
             post = etree.HTML(self.browser.page_source)
             time_last = (post.xpath('//p[@class="from"]/a[1]/text()'))[-1]
@@ -215,16 +247,35 @@ class GetWeibo:
                           datetime.timedelta(days=-31)).strftime(date_format)
             time_end = (datetime.datetime.strptime(time_last, date_format) +
                         datetime.timedelta(hours=+1)).strftime(date_format)
-            print(f'提示：本页最后一条微博时间为{time_last}。')
+            print(f'这是第50页，本页最后一条微博时间为{time_last}。当前时间是{_time}，目前已抓取{search_times}条微博。准备跳转页面...')
             url = self.browser.current_url
             url_change = re.search(r'(.*)(?=q=)', url)
-            url = url_change.group() + f'q={keywords}{origin}&suball=1&timescope=custom:{time_begin}:{time_end}&Refer=g&page=1'
-            self.auto_search(url, self.keywords, now, origin, date_judge, search_times)
-        click_next = self.browser.find_element(By.XPATH,
-                                               '//div[@class="m-page"]/div/a[@class="next"]')
+            url = url_change.group() + f'q={self.keywords}{self.origin}&suball=1&timescope=custom:{time_begin}:{time_end}&Refer=g&page=1'
+            return url, search_times
+        click_next = None
+        while True:
+            try:
+                click_next = self.browser.find_element(By.XPATH,
+                                                       '//div[@class="m-page"]/div/a[@class="next"]')
+                break
+            except selenium.common.exceptions.NoSuchElementException as E:
+                print(repr(E))
+                next_time = (datetime.datetime.now() + (datetime.timedelta(seconds=+3601))).strftime('%Y-%m-%d %H:%M:%S')
+                _target_time = datetime.datetime.strptime(next_time, '%Y-%m-%d %H:%M:%S')
+                _time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
+                print(f'达到单时段最大次数限制。当前时间是{_time}，目前已抓取{search_times}条微博，下次抓取时间：{next_time}，现在睡眠中...')
+                while datetime.datetime.now() < _target_time:
+                    time.sleep(60)
+                self.browser.back()
+                continue
         click_next.click()
         url = self.browser.current_url
-        self.auto_search(url, self.keywords, now, origin, date_judge, search_times)
+        return url, search_times
+
+    def main(self):
+        url, search_times = self.open_search()
+        while True:
+            url, search_times = self.auto_search(url, search_times)
 
 
 if __name__ == '__main__':
