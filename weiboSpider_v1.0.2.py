@@ -141,10 +141,15 @@ class GetWeibo:
             post = etree.HTML(self.browser.page_source)
             names = post.xpath('//a[@usercard]/span[@title]/text()')
             print(names)
-            time_ = post.xpath('//a[@title][@href][@class][1]/text()')
-            time_ = ''.join(time_)
-            time_ = f'20{time_.strip()}'
-            time_mark = datetime.datetime.strptime(time_, '%Y-%m-%d %H:%M')
+            time_mark = None
+            while True:
+                try:
+                    time_ = post.xpath('//a[@title][@href][@class][1]/text()')
+                    time_ = f'20{"".join(time_).strip()}'
+                    time_mark = datetime.datetime.strptime(time_, '%Y-%m-%d %H:%M')
+                    break
+                except ValueError as VE:
+                    continue
             if time_mark >= self.time_judge:
                 next_time = (datetime.datetime.now() + (datetime.timedelta(seconds=+3601))).strftime('%Y-%m-%d %H:%M:%S')
                 _target_time = datetime.datetime.strptime(next_time, '%Y-%m-%d %H:%M:%S')
@@ -208,6 +213,7 @@ class GetWeibo:
             csv_info = dict(zip(key_list, info_list))
             df1 = pandas.DataFrame(csv_info, columns=key_list)
             df = pandas.concat([df, df1])
+            time.sleep(.5)
             self.browser.back()
             search_times += 1
         df.to_csv('weibo_spider.csv', mode='a', encoding='utf_8_sig', header=False, index=False)
