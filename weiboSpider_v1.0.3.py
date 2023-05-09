@@ -131,53 +131,66 @@ class GetWeibo:
         time.sleep(1)
         data = etree.HTML(self.browser.page_source)
         post_url = data.xpath('//p[@class="from"]/a[1]/@href')
+        if len(post_url) == 0:
+            post_url = data.xpath('//div[@class="from"]/a[1]/@href')
         df = pandas.DataFrame(
             columns=['微博账号', '发文时间', '发送平台', '微博内容', '转发次数', '评论次数', '点赞次数', '原博地址'])
-        for url_single in post_url:
+        for index, url_single in enumerate(post_url):
             url = 'https:' + url_single
             print(url)
-            self.browser.get(url)
-            time.sleep(1)
-            post = etree.HTML(self.browser.page_source)
-            names = post.xpath('//a[@usercard]/span[@title]/text()')
-            print(names)
-            time_mark = None
             while True:
-                try:
-                    time_ = post.xpath('//a[@title][@href][@class][1]/text()')
-                    time_ = f'20{"".join(time_).strip()}'
-                    time_mark = datetime.datetime.strptime(time_, '%Y-%m-%d %H:%M')
-                    break
-                except ValueError as VE:
-                    continue
-            if time_mark >= self.time_judge:
-                next_time = (datetime.datetime.now() + (datetime.timedelta(seconds=+3601))).strftime('%Y-%m-%d %H:%M:%S')
-                _target_time = datetime.datetime.strptime(next_time, '%Y-%m-%d %H:%M:%S')
-                _time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
-                print(f'达到单时段最大次数限制。当前时间是{_time}，目前已抓取{search_times}条微博，下次抓取时间：{next_time}，现在睡眠中...')
-                while datetime.datetime.now() < _target_time:
+                self.browser.get(url)
+                time.sleep(1)
+                post = etree.HTML(self.browser.page_source)
+                names = post.xpath('//a[@usercard]/span[@title]/text()')
+                print(names)
+                time_ = post.xpath('//a[@title][@href][@class][1]/text()')
+                time_ = f'20{"".join(time_).strip()}'
+                if time_ == '20':
+                    print('解析错误，正在处理...')
                     time.sleep(60)
-                self.browser.back()
-                click_next = None
-                while True:
+                    self.browser.back()
+                    continue
+                elif index == 0:
                     try:
-                        click_next = self.browser.find_element(By.XPATH,
-                                                               '//div[@class="m-page"]/div/a[@class="next"]')
-                        break
-                    except selenium.common.exceptions.NoSuchElementException as E:
-                        print(repr(E))
-                        next_time = (datetime.datetime.now() + (datetime.timedelta(seconds=+3601))).strftime(
-                            '%Y-%m-%d %H:%M:%S')
-                        _target_time = datetime.datetime.strptime(next_time, '%Y-%m-%d %H:%M:%S')
-                        _time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
-                        print(f'达到单时段最大次数限制。当前时间是{_time}，目前已抓取{search_times}条微博，下次抓取时间：{next_time}，现在睡眠中...')
-                        while datetime.datetime.now() < _target_time:
-                            time.sleep(120)
+                        time_mark = datetime.datetime.strptime(time_, '%Y-%m-%d %H:%M')
+                        if time_mark > self.time_judge:
+                            next_time = (datetime.datetime.now() + (datetime.timedelta(seconds=+3601))).strftime(
+                                '%Y-%m-%d %H:%M:%S')
+                            _target_time = datetime.datetime.strptime(next_time, '%Y-%m-%d %H:%M:%S')
+                            _time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
+                            print(f'达到单时段最大次数限制。当前时间是{_time}，目前已抓取{search_times}条微博，下次抓取时间：{next_time}，现在睡眠中...')
+                            while datetime.datetime.now() < _target_time:
+                                time.sleep(60)
+                            self.browser.back()
+                            click_next = None
+                            while True:
+                                try:
+                                    click_next = self.browser.find_element(By.XPATH,
+                                                                           '//div[@class="m-page"]/div/a[@class="next"]')
+                                    break
+                                except selenium.common.exceptions.NoSuchElementException as E:
+                                    print(repr(E))
+                                    next_time = (
+                                                datetime.datetime.now() + (datetime.timedelta(seconds=+3601))).strftime(
+                                        '%Y-%m-%d %H:%M:%S')
+                                    _target_time = datetime.datetime.strptime(next_time, '%Y-%m-%d %H:%M:%S')
+                                    _time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
+                                    print(
+                                        f'达到单时段最大次数限制。当前时间是{_time}，目前已抓取{search_times}条微博，下次抓取时间：{next_time}，现在睡眠中...')
+                                    while datetime.datetime.now() < _target_time:
+                                        time.sleep(120)
+                                    self.browser.back()
+                                    continue
+                            click_next.click()
+                            url = self.browser.current_url
+                            return url, search_times
+                    except ValueError as VE:
+                        print(repr(VE))
+                        time.sleep(60)
                         self.browser.back()
                         continue
-                click_next.click()
-                url = self.browser.current_url
-                return url, search_times
+                break
             print(time_)
             from1 = post.xpath('//div[@class="woo-box-flex"]/div[@title]/text()')
             from2 = post.xpath('//div[@class="woo-box-flex"]/div[contains(@class, "head-info_cut")]/text()')
@@ -246,8 +259,8 @@ class GetWeibo:
                 hour_num = ''.join(re.findall(r'(\d+)', time_last)[2])
                 min_num = ''.join(re.findall(r'(\d+)', time_last)[3])
             time_last = year_num + '-' + mon_num + '-' + day_num + ' ' + hour_num + ':' + min_num
-            time_last = time.strptime(time_last, '%Y-%m-%d %H:%M')
-            time_last = time.strftime('%Y-%m-%d-%H', time_last)
+            time_last = datetime.datetime.strptime(time_last, '%Y-%m-%d %H:%M')
+            time_last = datetime.datetime.strftime(time_last, '%Y-%m-%d-%H')
             date_format = '%Y-%m-%d-%H'
             time_begin = (datetime.datetime.strptime(time_last, date_format) +
                           datetime.timedelta(days=-31)).strftime(date_format)
