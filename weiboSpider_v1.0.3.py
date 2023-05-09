@@ -240,6 +240,8 @@ class GetWeibo:
         if page_num == 50:
             post = etree.HTML(self.browser.page_source)
             time_last = (post.xpath('//p[@class="from"]/a[1]/text()'))[-1]
+            if len(time_last) == 0:
+                time_last = (post.xpath('//div[@class="from"]/a[1]/text()'))[-1]
             if '年' in time_last:
                 year_num = ''.join(re.findall(r'(\d+)', time_last)[0])
                 mon_num = ''.join(re.findall(r'(\d+)', time_last)[1])
