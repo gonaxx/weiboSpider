@@ -239,9 +239,10 @@ class GetWeibo:
         print(f'已成功提取第{page_num}页微博信息并追加写入CSV文件！当前时间是{_time}，目前已抓取{search_times}条微博。')
         if page_num == 50:
             post = etree.HTML(self.browser.page_source)
-            time_last = (post.xpath('//p[@class="from"]/a[1]/text()'))[-1]
+            time_last = post.xpath('//p[@class="from"]/a[1]/text()')
             if len(time_last) == 0:
-                time_last = (post.xpath('//div[@class="from"]/a[1]/text()'))[-1]
+                time_last = post.xpath('//div[@class="from"]/a[1]/text()'
+            time_last = time_last[-1]
             if '年' in time_last:
                 year_num = ''.join(re.findall(r'(\d+)', time_last)[0])
                 mon_num = ''.join(re.findall(r'(\d+)', time_last)[1])
