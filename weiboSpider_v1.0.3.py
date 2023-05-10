@@ -17,9 +17,9 @@ import selenium.common.exceptions
 
 class GetWeibo:
     browser_options = Options()
-    # 是否显示浏览器界面
+    # 不显示浏览器界面
     browser_options.add_argument("--headless")
-    # 是否取消沙盒模式
+    # 不使用沙盒模式
     # browser_options.add_argument("--no-sandbox")
     browser = webdriver.Chrome(chrome_options=browser_options)
     headers = {'user-agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) '
