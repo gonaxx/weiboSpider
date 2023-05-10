@@ -1,4 +1,3 @@
-import selenium.common.exceptions
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -10,6 +9,7 @@ import datetime
 import random
 import time
 import re
+import selenium.common.exceptions
 
 
 # from get_cookie import get_cookie
@@ -17,8 +17,10 @@ import re
 
 class GetWeibo:
     browser_options = Options()
-    # browser_options.add_argument("--headless")
-    # browser_options.add_argument('--no-sandbox')
+    # 是否显示浏览器界面
+    browser_options.add_argument("--headless")
+    # 是否取消沙盒模式
+    # browser_options.add_argument("--no-sandbox")
     browser = webdriver.Chrome(chrome_options=browser_options)
     headers = {'user-agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) '
                              'AppleWebKit/537.36 (KHTML, like Gecko) Chrome'
