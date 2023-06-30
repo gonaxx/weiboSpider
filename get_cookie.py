@@ -4,7 +4,7 @@ import json
 import time
 
 browser_options = Options()
-browser = webdriver.Chrome(chrome_options=browser_options)
+browser = webdriver.Chrome(options=browser_options)
 headers = {'user-agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) '
                          'AppleWebKit/537.36 (KHTML, like Gecko) Chrome'
                          '/103.0.0.0 Safari/537.36'}
