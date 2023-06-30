@@ -21,7 +21,7 @@ class GetWeibo:
     browser_options.add_argument("--headless")
     # 不使用沙盒模式
     # browser_options.add_argument("--no-sandbox")
-    browser = webdriver.Chrome(chrome_options=browser_options)
+    browser = webdriver.Chrome(options=browser_options)
     headers = {'user-agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) '
                              'AppleWebKit/537.36 (KHTML, like Gecko) Chrome'
                              '/103.0.0.0 Safari/537.36'}
