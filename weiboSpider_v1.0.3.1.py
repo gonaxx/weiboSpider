@@ -3,10 +3,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from lxml import etree
 import pandas
-import requests
 import json
 import datetime
-import random
 import time
 import re
 import selenium.common.exceptions
@@ -243,7 +241,7 @@ class GetWeibo:
             post = etree.HTML(self.browser.page_source)
             time_last = post.xpath('//p[@class="from"]/a[1]/text()')
             if len(time_last) == 0:
-                time_last = post.xpath('//div[@class="from"]/a[1]/text()'
+                time_last = post.xpath('//div[@class="from"]/a[1]/text()')
             time_last = time_last[-1]
             if '年' in time_last:
                 year_num = ''.join(re.findall(r'(\d+)', time_last)[0])
